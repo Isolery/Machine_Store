@@ -19,8 +19,8 @@
 
 uint8_t flag_RxFinish = FALSE;
 
-uint16_t wddr = 0x0000;
-uint16_t Rddr = 0x0000;
+uint32_t wddr = 0x0000;
+uint32_t Rddr = 0x0000;
 uint16_t ddrcout = 0;
 int benginitCh376_flag = 0, reinitCh376_count = 0, reinitCh376_flag = 0;
 
@@ -46,6 +46,11 @@ int main(void)
 {
 	SystemInit();
 	
+	//EEPROM_write_16B(0x0000, 0xFFFF); _delay_ms(10);
+	//EEPROM_write_16B(0x0002, 0xFFFF); _delay_ms(10);
+	//EEPROM_write_16B(0x0004, 0xFFFF); _delay_ms(10);
+	//EEPROM_write_16B(0x0006, 0xFFFF); _delay_ms(10);
+	//EEPROM_write_16B(0x0008, 0xFFFF); _delay_ms(10);
 	//DS1302_SetTime(timer);    //设置时间
 	_delay_ms(5);
 	
@@ -65,11 +70,13 @@ int main(void)
 				ddrcout++;
 			}
 			
-			EEPROM_write_16B(0x0000, wddr);    //将新的wddr值存入eeprom
-			_delay_ms(5);
+			EEPROM_write_16B(0x0000, wddr>>16);    //将新的wddr值存入eeprom
+			_delay_ms(10);
+			EEPROM_write_16B(0x0002, (uint16_t)wddr); 
+			_delay_ms(10);
 				
-			EEPROM_write_16B(0x0004, ddrcout);    //将新的ddrcout值存入eeprom
-			_delay_ms(5);
+			EEPROM_write_16B(0x0008, ddrcout);    //将新的ddrcout值存入eeprom
+			_delay_ms(10);
 			
 			if(wddr >= 0x7FF0) wddr = 0x0000;   //地址存满重新覆盖
 			if(ddrcout > 2047)
@@ -330,10 +337,12 @@ void UsbSave(void)
 		}
 		_delay_ms(50);
 		
-		EEPROM_write_16B(0x0002, Rddr);
-     	_delay_ms(5);
+		EEPROM_write_16B(0x0004, Rddr>>16);
+     	_delay_ms(10);
+		EEPROM_write_16B(0x0006, (uint16_t)Rddr);
+		_delay_ms(10);
      	
-     	EEPROM_write_16B(0x0004, ddrcout);
+     	EEPROM_write_16B(0x0008, ddrcout);
      	_delay_ms(5);
 		
 		CH376CloseFile(1);
@@ -375,22 +384,26 @@ void UsbSave(void)
 **********************************************************************************************/
 void EEPROM_Init(void)
 {
-	if( EEPROM_read_16B(0x0000) != 0xFFFF ) 
+	if( (EEPROM_read_16B(0x0000) != 0xFFFF) && (EEPROM_read_16B(0x0002) != 0xFFFF) ) 
 	{
 		_delay_ms(5);
 		wddr = EEPROM_read_16B(0x0000);
+		wddr = wddr<< 16;
+		wddr += EEPROM_read_16B(0x0002);
 	}
 	
-	if( EEPROM_read_16B(0x0002) != 0xFFFF ) 
+	if( (EEPROM_read_16B(0x0004) != 0xFFFF) && (EEPROM_read_16B(0x0006) != 0xFFFF) ) 
 	{
 		_delay_ms(5);
-		Rddr = EEPROM_read_16B(0x0002);
+		Rddr = EEPROM_read_16B(0x0004);
+		Rddr = Rddr<< 16;
+		Rddr += EEPROM_read_16B(0x0006);
 	}
 	
-	if( EEPROM_read_16B(0x0004) != 0xFFFF ) 
+	if( EEPROM_read_16B(0x0008) != 0xFFFF ) 
 	{
 		_delay_ms(5);
-		ddrcout = EEPROM_read_16B(0x0004);
+		ddrcout = EEPROM_read_16B(0x0008);
 	}
 }
 

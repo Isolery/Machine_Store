@@ -1,7 +1,7 @@
 #include "i2c.h"
 #include <util/delay.h>
 
-void AT24C256_Init(void)
+void AT24CM02_Init(void)
 {
     DDRE  |= 0xC0;
 	PORTE |= 0xC0;
@@ -201,43 +201,48 @@ unsigned char IIC_Receive8Bit(void)
 	return ReceiveByte;
 }
 
-char IIC_Transmit(unsigned char lcv_device,unsigned int liv_addr,unsigned char *lcv_pdata, char counter)
+// 0000 0000 0000 0011 1111 1111 1111 1111    A0 ~ A17   A16 A17存在设备地址的A1， A2中
+//AT24CM02的寻址范围：0 ~ 0x0003FFFF
+char IIC_Transmit(unsigned char lcv_device, uint32_t liv_addr, unsigned char *lcv_pdata, char counter)
 {
-    IIC_Start();
+	uint16_t addr = (uint16_t)liv_addr;
+	lcv_device |= ((liv_addr & (0xffff0000)) >> 15);
+	
+	IIC_Start();
 	
 	/* 发送从机地址 */
 	IIC_Send8Bit(lcv_device);
 	if ( IIC_ACK_Check() ) //调用函数char IIC_ACK_Check(void),没有从机回应则结束本次发送。
 	{
-	    IIC_Stop();
-        return FAIL;
+		IIC_Stop();
+		return FAIL;
 	}
 
 	/* 发送内存地址*/
-    IIC_Send8Bit((unsigned char)(liv_addr >> 8) & 0x0FF);  //高八位
-	if ( IIC_ACK_Check()) //调用函数char IIC_ACK_Check(void),没有从机回应则结束本次发送。
-    {
-        IIC_Stop();
-		return FAIL;
-    }	
-    IIC_Send8Bit((unsigned char)((liv_addr)&0x0FF));  //低八位
+	IIC_Send8Bit((unsigned char)(addr >> 8) & 0x00FF);  //高八位
 	if ( IIC_ACK_Check()) //调用函数char IIC_ACK_Check(void),没有从机回应则结束本次发送。
 	{
-        IIC_Stop();
+		IIC_Stop();
 		return FAIL;
-	}	
-		
+	}
+	IIC_Send8Bit((unsigned char)((addr)&0x00FF));  //低八位
+	if ( IIC_ACK_Check()) //调用函数char IIC_ACK_Check(void),没有从机回应则结束本次发送。
+	{
+		IIC_Stop();
+		return FAIL;
+	}
+	
 	/* 发送数据 */
-    for(;counter > 0;counter-- )		
-    {
-        IIC_Send8Bit(*lcv_pdata);
-	    if ( IIC_ACK_Check()) //调用函数char IIC_ACK_Check(void),没有从机回应则结束本次发送。
+	for(;counter > 0;counter-- )
+	{
+		IIC_Send8Bit(*lcv_pdata);
+		if ( IIC_ACK_Check()) //调用函数char IIC_ACK_Check(void),没有从机回应则结束本次发送。
 		{
-		    IIC_Stop();
-		    return FAIL;
-		}	
-	    lcv_pdata++;
-    }
+			IIC_Stop();
+			return FAIL;
+		}
+		lcv_pdata++;
+	}
 	
 	IIC_Stop();
 	
@@ -248,52 +253,54 @@ char IIC_Transmit(unsigned char lcv_device,unsigned int liv_addr,unsigned char *
 	return SUCCEED;
 }
 
-char IIC_Receive(unsigned char lcv_device, unsigned int liv_addr, unsigned char *lcv_pdata, char counter)
+char IIC_Receive(unsigned char lcv_device, uint32_t liv_addr, unsigned char *lcv_pdata, char counter)
 {
-    
+	uint16_t addr = (uint16_t)liv_addr;
+	lcv_device |= ((liv_addr & (0xffff0000)) >> 15);
+	
 	/* 先将从机配置为写模式 */
-    IIC_Start();
+	IIC_Start();
 	/* 发送从机地址 */
-    IIC_Send8Bit(lcv_device);
+	IIC_Send8Bit(lcv_device);
 	if ( IIC_ACK_Check())//调用函数char IIC_ACK_Check(void),没有从机回应则结束本次发送。
 	{
-        IIC_Stop();
-        return FAIL;
+		IIC_Stop();
+		return FAIL;
 	}
-		
-	   /*    发送内存地址   */
-    IIC_Send8Bit((unsigned char)((liv_addr >> 8)&0x0FF));
+	
+	/*    发送内存地址   */
+	IIC_Send8Bit((unsigned char)(addr >> 8));
 	if ( IIC_ACK_Check()) //调用函数char IIC_ACK_Check(void),没有从机回应则结束本次发送。
 	{
-	    IIC_Stop();
+		IIC_Stop();
 		return FAIL;
-	}	
-    IIC_Send8Bit((unsigned char)((liv_addr)&0x0FF));		
+	}
+	IIC_Send8Bit((unsigned char)(addr));
 	if ( IIC_ACK_Check()) //调用函数char IIC_ACK_Check(void),没有从机回应则结束本次发送。
 	{
-	    IIC_Stop();
+		IIC_Stop();
 		return FAIL;
-	}	
+	}
 	
 	
-	/* 然后将从机配置为写模式 */	
+	/* 然后将从机配置为写模式 */
 	IIC_Start();
-    /* 发送从机地址 */
-	IIC_Send8Bit(lcv_device+1); 
+	/* 发送从机地址 */
+	IIC_Send8Bit(lcv_device+1);
 	if ( IIC_ACK_Check()) ////调用函数char IIC_ACK_Check(void),没有从机回应则结束本次发送。
 	{
-        IIC_Stop();
+		IIC_Stop();
 		return FAIL;
-    }	
-		
+	}
+	
 	for( ; counter > 0; )
 	{
-        *lcv_pdata = IIC_Receive8Bit();
-	    counter--;
-	    if ( counter >0)
+		*lcv_pdata = IIC_Receive8Bit();
+		counter--;
+		if ( counter >0)
 		{
-		    IIC_ACK_Creat();
-		    lcv_pdata++ ;
+			IIC_ACK_Creat();
+			lcv_pdata++ ;
 		}
 	}
 	

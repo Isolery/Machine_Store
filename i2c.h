@@ -17,7 +17,7 @@
 #define  FAIL      1
 #define  SUCCEED   0
 
-extern  void AT24C256_Init(void);
+extern  void AT24CM02_Init(void);
 extern  void IIC_delay(void);
 extern  void IIC_delayMS(int x);
 extern  void IIC_Start(void);
@@ -27,7 +27,7 @@ extern  void IIC_NO_ACK(void);
 extern  void IIC_ACK_Creat(void);
 extern  void IIC_Send8Bit(unsigned char SendByte);
 extern  unsigned char IIC_Receive8Bit(void);
-extern char IIC_Transmit(unsigned char lcv_device,unsigned int liv_addr,unsigned char *lcv_pdata, char counter);
-extern char IIC_Receive(unsigned char lcv_device, unsigned int liv_addr, unsigned char *lcv_pdata, char counter);
+extern  char IIC_Transmit(unsigned char lcv_device, uint32_t liv_addr, unsigned char *lcv_pdata, char counter);
+extern char IIC_Receive(unsigned char lcv_device, uint32_t liv_addr, unsigned char *lcv_pdata, char counter);
 
 #endif
